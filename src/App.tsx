@@ -21,7 +21,8 @@ import {
   ExternalLink,
   ArrowUpRight,
   ArrowDownRight,
-  Loader2
+  Loader2,
+  Target
 } from 'lucide-react';
 import Papa from 'papaparse';
 import { motion } from 'motion/react';
@@ -39,13 +40,14 @@ interface Stats {
   average: number;
   min: number;
   max: number;
+  recommendedRange: string;
 }
 
 export default function App() {
   const [data, setData] = useState<AgeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<Stats>({ total: 0, average: 0, min: 0, max: 0 });
+  const [stats, setStats] = useState<Stats>({ total: 0, average: 0, min: 0, max: 0, recommendedRange: '-' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -95,8 +97,25 @@ export default function App() {
           const min = Math.min(...rawAges);
           const max = Math.max(...rawAges);
 
+          // Calculate recommended range (10-year bracket with most people)
+          const brackets: Record<number, number> = {};
+          rawAges.forEach(age => {
+            const bracket = Math.floor(age / 10) * 10;
+            brackets[bracket] = (brackets[bracket] || 0) + 1;
+          });
+          
+          let bestBracket = 0;
+          let maxCount = 0;
+          Object.entries(brackets).forEach(([bracket, count]) => {
+            if (count > maxCount) {
+              maxCount = count;
+              bestBracket = parseInt(bracket);
+            }
+          });
+          const recommendedRange = `${bestBracket} - ${bestBracket + 9}`;
+
           setData(chartData);
-          setStats({ total, average, min, max });
+          setStats({ total, average, min, max, recommendedRange });
           setLoading(false);
         },
         error: () => {
@@ -178,7 +197,7 @@ export default function App() {
         </header>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
           <StatCard 
             title="Total de Registros" 
             value={stats.total} 
@@ -203,6 +222,13 @@ export default function App() {
             value={stats.max} 
             icon={<ArrowUpRight className="w-5 h-5" />} 
             color="bg-rose-50 text-rose-600"
+          />
+          <StatCard 
+            title="Foco Tráfego Pago" 
+            value={stats.recommendedRange} 
+            icon={<Target className="w-5 h-5" />} 
+            color="bg-indigo-50 text-indigo-600"
+            suffix=" anos"
           />
         </div>
 
