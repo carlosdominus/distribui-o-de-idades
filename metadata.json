@@ -1,0 +1,5 @@
+{
+  "name": "Dashboard de Distribuição de Idades",
+  "description": "Um dashboard minimalista que visualiza a distribuição de idades a partir de uma planilha do Google Sheets.",
+  "requestFramePermissions": []
+}
