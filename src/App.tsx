@@ -28,7 +28,7 @@ import Papa from 'papaparse';
 import { motion } from 'motion/react';
 
 // Google Sheet CSV Export URL
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1v-xiB_Xne8aHDOIKRAbSCrYtOFMbLpPQ/export?format=csv';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1HMdurn2vcQ_kFcrmWGTD1RaihRtDLGzj/export?format=csv';
 
 interface AgeData {
   age: number;
@@ -40,6 +40,7 @@ interface Stats {
   average: number;
   min: number;
   max: number;
+  maxCount: number;
   recommendedRange: string;
 }
 
@@ -47,7 +48,7 @@ export default function App() {
   const [data, setData] = useState<AgeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<Stats>({ total: 0, average: 0, min: 0, max: 0, recommendedRange: '-' });
+  const [stats, setStats] = useState<Stats>({ total: 0, average: 0, min: 0, max: 0, maxCount: 0, recommendedRange: '-' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -96,6 +97,7 @@ export default function App() {
           const average = sum / total;
           const min = Math.min(...rawAges);
           const max = Math.max(...rawAges);
+          const maxCountInChart = Math.max(...chartData.map(d => d.count));
 
           // Calculate recommended range (10-year bracket with most people)
           const brackets: Record<number, number> = {};
@@ -115,7 +117,7 @@ export default function App() {
           const recommendedRange = `${bestBracket} - ${bestBracket + 9}`;
 
           setData(chartData);
-          setStats({ total, average, min, max, recommendedRange });
+          setStats({ total, average, min, max, maxCount: maxCountInChart, recommendedRange });
           setLoading(false);
         },
         error: () => {
@@ -178,7 +180,7 @@ export default function App() {
             <p className="text-slate-500 mt-2 flex items-center gap-2">
               Visualização de dados em tempo real da planilha pública
               <a 
-                href="https://docs.google.com/spreadsheets/d/1v-xiB_Xne8aHDOIKRAbSCrYtOFMbLpPQ/edit" 
+                href="https://docs.google.com/spreadsheets/d/1HMdurn2vcQ_kFcrmWGTD1RaihRtDLGzj/edit" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-indigo-600 hover:underline inline-flex items-center gap-1"
@@ -294,13 +296,24 @@ export default function App() {
                   radius={[6, 6, 0, 0]}
                   animationDuration={1500}
                 >
-                  {data.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.count > stats.total / data.length ? '#4f46e5' : '#818cf8'} 
-                      fillOpacity={0.9}
-                    />
-                  ))}
+                  {data.map((entry, index) => {
+                    // Interpolate between Yellow (#fbbf24) and Red (#ef4444)
+                    // Yellow: rgb(251, 191, 36)
+                    // Red: rgb(239, 68, 68)
+                    const ratio = stats.maxCount > 0 ? entry.count / stats.maxCount : 0;
+                    const r = Math.round(251 + (239 - 251) * ratio);
+                    const g = Math.round(191 + (68 - 191) * ratio);
+                    const b = Math.round(36 + (68 - 36) * ratio);
+                    const color = `rgb(${r}, ${g}, ${b})`;
+                    
+                    return (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={color} 
+                        fillOpacity={0.9}
+                      />
+                    );
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
